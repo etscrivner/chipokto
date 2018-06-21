@@ -19,7 +19,7 @@ pub type OktoResult<T> = std::result::Result<T, OktoError>;
 #[derive(Debug, PartialEq)]
 pub struct OktoError {
     /// The kind of error that occurrred
-    pub kind: OktoErrorKind
+    pub kind: OktoErrorKind,
 }
 
 /// A list specifying general categories of emulator errors.
@@ -38,7 +38,7 @@ pub enum OktoErrorKind {
     /// Invalid opcode given to the interpreter
     InvalidOpcode,
     /// Unknown error along with an error message
-    Unknown(String)
+    Unknown(String),
 }
 
 /// Implementation of the error interface
@@ -60,7 +60,7 @@ impl Error for OktoError {
             OktoErrorKind::AddressOutOfRange => "Address out of range",
             OktoErrorKind::InvalidDigitSprite => "Invalid digit sprite",
             OktoErrorKind::InvalidOpcode => "Invalid opcode",
-            OktoErrorKind::Unknown(_) => "Unknown"
+            OktoErrorKind::Unknown(_) => "Unknown",
         }
     }
 }

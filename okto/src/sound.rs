@@ -7,7 +7,7 @@ pub const SOUND_TIMER_TICK_HZ: u32 = 60;
 /// Sound subsystem state data.
 pub struct Sound {
     /// Sound timer
-    pub timer: timer::Timer
+    pub timer: timer::Timer,
 }
 
 /// Implementation of sound subsystem

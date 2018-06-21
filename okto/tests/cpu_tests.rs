@@ -1,5 +1,5 @@
 extern crate okto;
-use okto::cpu::{Cpu, Operation, Instruction, InstructionParts};
+use okto::cpu::{Cpu, Instruction, InstructionParts, Operation};
 
 #[test]
 fn cpu_data_structure() {

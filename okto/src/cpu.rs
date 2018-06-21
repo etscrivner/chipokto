@@ -34,7 +34,7 @@ pub struct Cpu {
     /// The 8-bit stack pointer
     pub sp: Register,
     /// The 16 item stack
-    pub stack: [Address; MAX_NUM_STACK_ITEMS]
+    pub stack: [Address; MAX_NUM_STACK_ITEMS],
 }
 
 impl Cpu {
@@ -55,7 +55,7 @@ impl Cpu {
             i: 0,
             pc: DEFAULT_PC_ADDRESS,
             sp: 0,
-            stack: [0; MAX_NUM_STACK_ITEMS]
+            stack: [0; MAX_NUM_STACK_ITEMS],
         }
     }
 
@@ -71,12 +71,12 @@ impl Cpu {
     /// # extern crate okto;
     /// # use okto::cpu::Cpu;
     /// let mut cpu = Cpu::new();
-    /// 
+    ///
     /// assert_eq!(0, cpu.sp);
     /// assert_eq!(0, cpu.stack[0]);
-    /// 
+    ///
     /// cpu.push_stack(0x123).unwrap();
-    /// 
+    ///
     /// assert_eq!(1, cpu.sp);
     /// assert_eq!(0x123, cpu.stack[0]);
     /// ```
@@ -257,7 +257,7 @@ impl InstructionParts for Instruction {
 }
 
 /// Enumeration of Chip8 and SuperChip8 CPU operations
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum Operation {
     // Chip8 Opcodes
     Cls,
@@ -304,7 +304,7 @@ pub enum Operation {
     High,
     LoadAddrBigDigit(Register),
     RplStoreRegs(Register),
-    RplLoadRegs(Register)
+    RplLoadRegs(Register),
 }
 
 impl Operation {
@@ -335,137 +335,71 @@ impl Operation {
     /// ```
     pub fn from_instruction(instruction: &Instruction) -> Option<Operation> {
         match instruction & 0xF000 {
-            0x0000 => {
-                match instruction & 0x0FFF {
-                    0x00E0 => Some(Operation::Cls),
-                    0x00EE => Some(Operation::Ret),
-                    0x00FB => Some(Operation::Scr),
-                    0x00FC => Some(Operation::Scl),
-                    0x00FD => Some(Operation::Exit),
-                    0x00FE => Some(Operation::Low),
-                    0x00FF => Some(Operation::High),
-                    _ => Some(Operation::Sys(instruction.addr()))
-                }
+            0x0000 => match instruction & 0x0FFF {
+                0x00E0 => Some(Operation::Cls),
+                0x00EE => Some(Operation::Ret),
+                0x00FB => Some(Operation::Scr),
+                0x00FC => Some(Operation::Scl),
+                0x00FD => Some(Operation::Exit),
+                0x00FE => Some(Operation::Low),
+                0x00FF => Some(Operation::High),
+                _ => Some(Operation::Sys(instruction.addr())),
             },
             0x1000 => Some(Operation::Jump(instruction.addr())),
             0x2000 => Some(Operation::Call(instruction.addr())),
-            0x3000 => {
-                Some(
-                    Operation::SkipEqImm(instruction.vx(), instruction.imm())
-                )
+            0x3000 => Some(Operation::SkipEqImm(instruction.vx(), instruction.imm())),
+            0x4000 => Some(Operation::SkipNeqImm(instruction.vx(), instruction.imm())),
+            0x5000 => match instruction & 0x000F {
+                0x0000 => Some(Operation::SkipEqReg(instruction.vx(), instruction.vy())),
+                _ => None,
             },
-            0x4000 => {
-                Some(
-                    Operation::SkipNeqImm(instruction.vx(), instruction.imm())
-                )
+            0x6000 => Some(Operation::LoadImm(instruction.vx(), instruction.imm())),
+            0x7000 => Some(Operation::AddImm(instruction.vx(), instruction.imm())),
+            0x8000 => match instruction & 0x000F {
+                0x0000 => Some(Operation::LoadReg(instruction.vx(), instruction.vy())),
+                0x0001 => Some(Operation::Or(instruction.vx(), instruction.vy())),
+                0x0002 => Some(Operation::And(instruction.vx(), instruction.vy())),
+                0x0003 => Some(Operation::Xor(instruction.vx(), instruction.vy())),
+                0x0004 => Some(Operation::AddReg(instruction.vx(), instruction.vy())),
+                0x0005 => Some(Operation::Sub(instruction.vx(), instruction.vy())),
+                0x0006 => Some(Operation::Shr(instruction.vx())),
+                0x0007 => Some(Operation::SubNeg(instruction.vx(), instruction.vy())),
+                0x000E => Some(Operation::Shl(instruction.vx())),
+                _ => None,
             },
-            0x5000 => {
-                match instruction & 0x000F {
-                    0x0000 => {
-                        Some(Operation::SkipEqReg(
-                            instruction.vx(), instruction.vy()
-                        ))
-                    },
-                    _ => None
-                }
-            },
-            0x6000 => {
-                Some(Operation::LoadImm(instruction.vx(), instruction.imm()))
-            },
-            0x7000 => {
-                Some(Operation::AddImm(instruction.vx(), instruction.imm()))
-            },
-            0x8000 => {
-                match instruction & 0x000F {
-                    0x0000 => {
-                        Some(Operation::LoadReg(
-                            instruction.vx(), instruction.vy()
-                        ))
-                    },
-                    0x0001 => {
-                        Some(Operation::Or(instruction.vx(), instruction.vy()))
-                    },
-                    0x0002 => {
-                        Some(
-                            Operation::And(instruction.vx(), instruction.vy())
-                        )
-                    },
-                    0x0003 => {
-                        Some(
-                            Operation::Xor(instruction.vx(), instruction.vy())
-                        )
-                    },
-                    0x0004 => {
-                        Some(Operation::AddReg(
-                            instruction.vx(), instruction.vy()
-                        ))
-                    },
-                    0x0005 => {
-                        Some(
-                            Operation::Sub(instruction.vx(), instruction.vy())
-                        )
-                    },
-                    0x0006 => Some(Operation::Shr(instruction.vx())),
-                    0x0007 => {
-                        Some(Operation::SubNeg(
-                            instruction.vx(), instruction.vy()
-                        ))
-                    },
-                    0x000E => Some(Operation::Shl(instruction.vx())),
-                    _ => None
-                }
-            },
-            0x9000 => {
-                match instruction & 0x000F {
-                    0x0000 => {
-                        Some(Operation::SkipNeqReg(
-                            instruction.vx(), instruction.vy()
-                        ))
-                    },
-                    _ => None
-                }
+            0x9000 => match instruction & 0x000F {
+                0x0000 => Some(Operation::SkipNeqReg(instruction.vx(), instruction.vy())),
+                _ => None,
             },
             0xA000 => Some(Operation::LoadAddr(instruction.addr())),
             0xB000 => Some(Operation::JumpAddrPlusV0(instruction.addr())),
-            0xC000 => {
-                Some(
-                    Operation::RandModImm(instruction.vx(), instruction.imm())
-                )
+            0xC000 => Some(Operation::RandModImm(instruction.vx(), instruction.imm())),
+            0xD000 => Some(Operation::Draw(
+                instruction.vx(),
+                instruction.vy(),
+                instruction.nib(),
+            )),
+            0xE000 => match instruction & 0x00FF {
+                0x009E => Some(Operation::SkipKey(instruction.vx())),
+                0x00A1 => Some(Operation::SkipNotKey(instruction.vx())),
+                _ => None,
             },
-            0xD000 => {
-                Some(
-                    Operation::Draw(
-                        instruction.vx(), instruction.vy(), instruction.nib()
-                    )
-                )
+            0xF000 => match instruction & 0x00FF {
+                0x0007 => Some(Operation::LoadRegDelay(instruction.vx())),
+                0x000A => Some(Operation::WaitKey(instruction.vx())),
+                0x0015 => Some(Operation::LoadDelayReg(instruction.vx())),
+                0x0018 => Some(Operation::LoadSoundReg(instruction.vx())),
+                0x001E => Some(Operation::AddAddrReg(instruction.vx())),
+                0x0029 => Some(Operation::LoadAddrDigit(instruction.vx())),
+                0x0030 => Some(Operation::LoadAddrBigDigit(instruction.vx())),
+                0x0033 => Some(Operation::MemStoreBcd(instruction.vx())),
+                0x0055 => Some(Operation::MemStoreRegs(instruction.vx())),
+                0x0065 => Some(Operation::MemLoadRegs(instruction.vx())),
+                0x0075 => Some(Operation::RplStoreRegs(instruction.vx())),
+                0x0085 => Some(Operation::RplLoadRegs(instruction.vx())),
+                _ => None,
             },
-            0xE000 => {
-                match instruction & 0x00FF {
-                    0x009E => Some(Operation::SkipKey(instruction.vx())),
-                    0x00A1 => Some(Operation::SkipNotKey(instruction.vx())),
-                    _ => None
-                }
-            },
-            0xF000 => {
-                match instruction & 0x00FF {
-                    0x0007 => Some(Operation::LoadRegDelay(instruction.vx())),
-                    0x000A => Some(Operation::WaitKey(instruction.vx())),
-                    0x0015 => Some(Operation::LoadDelayReg(instruction.vx())),
-                    0x0018 => Some(Operation::LoadSoundReg(instruction.vx())),
-                    0x001E => Some(Operation::AddAddrReg(instruction.vx())),
-                    0x0029 => Some(Operation::LoadAddrDigit(instruction.vx())),
-                    0x0030 => {
-                        Some(Operation::LoadAddrBigDigit(instruction.vx()))
-                    },
-                    0x0033 => Some(Operation::MemStoreBcd(instruction.vx())),
-                    0x0055 => Some(Operation::MemStoreRegs(instruction.vx())),
-                    0x0065 => Some(Operation::MemLoadRegs(instruction.vx())),
-                    0x0075 => Some(Operation::RplStoreRegs(instruction.vx())),
-                    0x0085 => Some(Operation::RplLoadRegs(instruction.vx())),
-                    _ => None
-                }
-            }
-            _ => None
+            _ => None,
         }
     }
 }

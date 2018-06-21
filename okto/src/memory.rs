@@ -1,40 +1,103 @@
 //! Chip8 memory access and loading
-use super::{OktoResult, OktoError, OktoErrorKind};
 use super::cpu::{Address, Instruction, DEFAULT_PC_ADDRESS};
+use super::{OktoError, OktoErrorKind, OktoResult};
 
 /// The size of the Chip8 memory in bytes.
 pub const MEMORY_SIZE_BYTES: usize = 0x1000;
 /// The maximum size of a Chip8 ROM in bytes.
-pub const MAX_ROM_SIZE_BYTES: usize =
-    MEMORY_SIZE_BYTES - DEFAULT_PC_ADDRESS as usize;
+pub const MAX_ROM_SIZE_BYTES: usize = MEMORY_SIZE_BYTES - DEFAULT_PC_ADDRESS as usize;
 /// The number of bytes per digit sprite.
 pub const BYTES_PER_DIGIT_SPRITE: Address = 5;
 /// The number of digit sprites.
 pub const NUM_DIGIT_SPRITES: usize = 0x10 * BYTES_PER_DIGIT_SPRITE as usize;
 /// Hexadecimal digits represented as 5 byte sprites.
 pub const DIGIT_SPRITES: [u8; NUM_DIGIT_SPRITES] = [
-    0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
-    0x20, 0x60, 0x20, 0x20, 0x70, // 1
-    0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
-    0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
-    0x90, 0x90, 0xF0, 0x10, 0x10, // 4
-    0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
-    0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
-    0xF0, 0x10, 0x20, 0x40, 0x40, // 7
-    0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
-    0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
-    0xF0, 0x90, 0xF0, 0x90, 0x90, // A
-    0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
-    0xF0, 0x80, 0x80, 0x80, 0xF0, // C
-    0xE0, 0x90, 0x90, 0x90, 0xE0, // D
-    0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
-    0xF0, 0x80, 0xF0, 0x80, 0x80  // F
+    0xF0,
+    0x90,
+    0x90,
+    0x90,
+    0xF0, // 0
+    0x20,
+    0x60,
+    0x20,
+    0x20,
+    0x70, // 1
+    0xF0,
+    0x10,
+    0xF0,
+    0x80,
+    0xF0, // 2
+    0xF0,
+    0x10,
+    0xF0,
+    0x10,
+    0xF0, // 3
+    0x90,
+    0x90,
+    0xF0,
+    0x10,
+    0x10, // 4
+    0xF0,
+    0x80,
+    0xF0,
+    0x10,
+    0xF0, // 5
+    0xF0,
+    0x80,
+    0xF0,
+    0x90,
+    0xF0, // 6
+    0xF0,
+    0x10,
+    0x20,
+    0x40,
+    0x40, // 7
+    0xF0,
+    0x90,
+    0xF0,
+    0x90,
+    0xF0, // 8
+    0xF0,
+    0x90,
+    0xF0,
+    0x10,
+    0xF0, // 9
+    0xF0,
+    0x90,
+    0xF0,
+    0x90,
+    0x90, // A
+    0xE0,
+    0x90,
+    0xE0,
+    0x90,
+    0xE0, // B
+    0xF0,
+    0x80,
+    0x80,
+    0x80,
+    0xF0, // C
+    0xE0,
+    0x90,
+    0x90,
+    0x90,
+    0xE0, // D
+    0xF0,
+    0x80,
+    0xF0,
+    0x80,
+    0xF0, // E
+    0xF0,
+    0x80,
+    0xF0,
+    0x80,
+    0x80, // F
 ];
 
 /// Encapsulates memory subsystem for Chip8.
 pub struct Memory {
     /// Byte array representing memory.
-    pub data: [u8; MEMORY_SIZE_BYTES]
+    pub data: [u8; MEMORY_SIZE_BYTES],
 }
 
 /// Creates a 16-bit value by concatenating two 8-bit values. Used to read
@@ -43,7 +106,7 @@ pub struct Memory {
 /// # Examples
 ///
 /// The function is extremely simple and can be used as follows:
-/// 
+///
 /// ```
 /// # extern crate okto;
 /// # use okto::memory;
@@ -58,7 +121,7 @@ impl Memory {
     /// data into reserved space in range 0x000 - 0x200.
     pub fn new() -> Self {
         let mut result = Self {
-            data: [0; MEMORY_SIZE_BYTES]
+            data: [0; MEMORY_SIZE_BYTES],
         };
         result.data[0..NUM_DIGIT_SPRITES].copy_from_slice(&DIGIT_SPRITES);
         result
@@ -97,9 +160,7 @@ impl Memory {
     /// let bytes: [u8; 6] = [0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC];
     /// assert!(memory.load(&bytes, 0xFFA, bytes.len()).is_err());
     /// ```
-    pub fn load(&mut self, data: &[u8], start_address: Address, size: usize)
-                -> OktoResult<()>
-    {
+    pub fn load(&mut self, data: &[u8], start_address: Address, size: usize) -> OktoResult<()> {
         let start = start_address as usize;
         let end = (start_address as usize) + size;
 
@@ -133,9 +194,7 @@ impl Memory {
     /// # let mut memory = Memory::new();
     /// assert!(memory.write_byte(0x1000, 0x12).is_err());
     /// ```
-    pub fn write_byte(&mut self, address: Address, value: u8)
-                      -> OktoResult<()>
-    {
+    pub fn write_byte(&mut self, address: Address, value: u8) -> OktoResult<()> {
         if address >= MEMORY_SIZE_BYTES as Address {
             return Err(OktoError::new(OktoErrorKind::AddressOutOfRange));
         }
@@ -159,9 +218,7 @@ impl Memory {
     /// assert!(result.is_ok());
     /// assert_eq!(result.unwrap(), &[0x1F, 0x3F, 0xF3]);
     /// ```
-    pub fn read_bytes(&self, address: Address, size_bytes: usize)
-                      -> OktoResult<&[u8]>
-    {
+    pub fn read_bytes(&self, address: Address, size_bytes: usize) -> OktoResult<&[u8]> {
         let start = address as usize;
         let end = start + size_bytes;
         if start >= MEMORY_SIZE_BYTES || end >= MEMORY_SIZE_BYTES {
@@ -205,7 +262,7 @@ impl Memory {
 
         let result = bytes_to_word(
             &self.data[address as usize],
-            &self.data[(address + 1) as usize]
+            &self.data[(address + 1) as usize],
         );
 
         Some(result)

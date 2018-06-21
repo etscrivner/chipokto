@@ -10,32 +10,33 @@ pub type WaitKeyResult<T> = Result<T, String>;
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum KeyState {
     Released,
-    Pressed
+    Pressed,
 }
 
 /// Data structure representing the state of the Chip8 keyboard.
 pub struct Keyboard<F>
-where F: FnMut() -> WaitKeyResult<u8>
+where
+    F: FnMut() -> WaitKeyResult<u8>,
 {
     /// State of the keys on the keyboard.
     pub keys: [KeyState; NUM_KEYS],
-    
+
     // TODO: Reimplement the callback fn pointer as a trait object??
-    
     /// Callback method invoked when wait key instruction occurs.
-    pub wait_key_callback: Box<F>
+    pub wait_key_callback: Box<F>,
 }
 
 /// Implementation of keyboard interfaces
 impl<F> Keyboard<F>
-where F: FnMut() -> WaitKeyResult<u8>
+where
+    F: FnMut() -> WaitKeyResult<u8>,
 {
     /// Initialize a new keyboard structure with all keys released. Uses the
     /// nop callback function.
     pub fn new(wait_key_callback: Box<F>) -> Self {
         Self {
             keys: [KeyState::Released; NUM_KEYS],
-            wait_key_callback: wait_key_callback
+            wait_key_callback: wait_key_callback,
         }
     }
 }

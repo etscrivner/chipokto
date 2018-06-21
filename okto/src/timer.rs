@@ -9,7 +9,7 @@ pub const TIMER_TICK_HZ: u32 = 60;
 /// Delay timer register for Chip8
 pub struct DelayTimer {
     /// The current value of the delay timer.
-    pub value: Timer
+    pub value: Timer,
 }
 
 /// Implementation of delay timer functionality.

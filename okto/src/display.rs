@@ -10,11 +10,11 @@ pub const MAX_SPRITE_BYTES: usize = 15;
 pub const PIXELS_PER_BYTE: usize = 8;
 
 /// Display state data
-pub struct Display{
+pub struct Display {
     /// Frame buffer for the video display
     pub data: [[u8; DISPLAY_HEIGHT]; DISPLAY_WIDTH],
     /// Indicates whether or not the display is in high resolution mode
-    pub high_resolution: bool
+    pub high_resolution: bool,
 }
 
 /// Implementation of the display
@@ -25,7 +25,7 @@ impl Display {
     pub fn new() -> Self {
         Self {
             data: [[0; DISPLAY_HEIGHT]; DISPLAY_WIDTH],
-            high_resolution: false
+            high_resolution: false,
         }
     }
 
@@ -104,12 +104,7 @@ impl Display {
     /// assert_eq!(&display.data[0][0..8], &[1, 1, 1, 1, 1, 1, 1, 1]);
     /// assert_eq!(&display.data[1][0..8], &[0, 0, 0, 1, 1, 1, 1, 1]);
     /// ```
-    pub fn draw(&mut self,
-                x: usize,
-                y: usize,
-                size_bytes: usize,
-                sprite_data: &[u8]) -> bool
-    {
+    pub fn draw(&mut self, x: usize, y: usize, size_bytes: usize, sprite_data: &[u8]) -> bool {
         assert!(sprite_data.len() == size_bytes);
         assert!(size_bytes <= MAX_SPRITE_BYTES);
 

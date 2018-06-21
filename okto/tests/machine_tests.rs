@@ -1,9 +1,9 @@
 extern crate okto;
 
-use okto::{OktoError, OktoErrorKind};
 use okto::cpu;
 use okto::keyboard;
 use okto::machine::Machine;
+use okto::{OktoError, OktoErrorKind};
 
 #[test]
 fn machine_initialization() {
@@ -14,21 +14,27 @@ fn machine_initialization() {
     assert_eq!(machine.cpu.i, 0);
     assert_eq!(machine.cpu.pc, cpu::DEFAULT_PC_ADDRESS);
     assert_eq!(machine.cpu.sp, 0);
-    assert!(machine.cpu.stack.iter().all(|&x| x == 0 ));
+    assert!(machine.cpu.stack.iter().all(|&x| x == 0));
 
     // Initial memory state
     assert!(machine.memory.data[0x200..].iter().all(|&x| x == 0));
 
     // Initial keyboard state
     assert!(
-        machine.keyboard.keys.iter().all(
-            |&x| x == keyboard::KeyState::Released
-        )
+        machine
+            .keyboard
+            .keys
+            .iter()
+            .all(|&x| x == keyboard::KeyState::Released)
     );
 
     // Initial display state
     assert!(
-        machine.display.data.iter().all(|&y| y.iter().all(|&x| x == 0))
+        machine
+            .display
+            .data
+            .iter()
+            .all(|&y| y.iter().all(|&x| x == 0))
     );
     assert!(!machine.display.high_resolution);
 
@@ -55,7 +61,9 @@ fn chip8_cpu_operations() {
     assert_eq!(0xABC, machine.cpu.pc);
 
     machine.cpu.v[0] = 0x3;
-    machine.execute(cpu::Operation::JumpAddrPlusV0(0x233)).unwrap();
+    machine
+        .execute(cpu::Operation::JumpAddrPlusV0(0x233))
+        .unwrap();
     assert_eq!(0x236, machine.cpu.pc);
 
     // Call
@@ -68,49 +76,65 @@ fn chip8_cpu_operations() {
     // SkipEqImm
     machine.cpu.pc = 0x200;
     machine.cpu.v[0x1] = 0x23;
-    machine.execute(cpu::Operation::SkipEqImm(0x1, 0x23)).unwrap();
+    machine
+        .execute(cpu::Operation::SkipEqImm(0x1, 0x23))
+        .unwrap();
     assert_eq!(0x202, machine.cpu.pc);
 
     machine.cpu.pc = 0x200;
     machine.cpu.v[0x1] = 0x23;
-    machine.execute(cpu::Operation::SkipEqImm(0x1, 0x01)).unwrap();
+    machine
+        .execute(cpu::Operation::SkipEqImm(0x1, 0x01))
+        .unwrap();
     assert_eq!(0x200, machine.cpu.pc);
 
     // SkipEqReg
     machine.cpu.pc = 0x200;
     machine.cpu.v[0x1] = 0x11;
     machine.cpu.v[0x5] = 0x11;
-    machine.execute(cpu::Operation::SkipEqReg(0x1, 0x5)).unwrap();
+    machine
+        .execute(cpu::Operation::SkipEqReg(0x1, 0x5))
+        .unwrap();
     assert_eq!(0x202, machine.cpu.pc);
 
     machine.cpu.pc = 0x200;
     machine.cpu.v[0x1] = 0x11;
     machine.cpu.v[0x5] = 0x12;
-    machine.execute(cpu::Operation::SkipEqReg(0x1, 0x5)).unwrap();
+    machine
+        .execute(cpu::Operation::SkipEqReg(0x1, 0x5))
+        .unwrap();
     assert_eq!(0x200, machine.cpu.pc);
 
     // SkipNeqImm
     machine.cpu.pc = 0x200;
     machine.cpu.v[0x3] = 0x33;
-    machine.execute(cpu::Operation::SkipNeqImm(0x3, 0x13)).unwrap();
+    machine
+        .execute(cpu::Operation::SkipNeqImm(0x3, 0x13))
+        .unwrap();
     assert_eq!(0x202, machine.cpu.pc);
 
     machine.cpu.pc = 0x200;
     machine.cpu.v[0x3] = 0x33;
-    machine.execute(cpu::Operation::SkipNeqImm(0x3, 0x33)).unwrap();
+    machine
+        .execute(cpu::Operation::SkipNeqImm(0x3, 0x33))
+        .unwrap();
     assert_eq!(0x200, machine.cpu.pc);
 
     // SkipNeqReg
     machine.cpu.pc = 0x200;
     machine.cpu.v[0x1] = 0x11;
     machine.cpu.v[0x2] = 0x23;
-    machine.execute(cpu::Operation::SkipNeqReg(0x1, 0x2)).unwrap();
+    machine
+        .execute(cpu::Operation::SkipNeqReg(0x1, 0x2))
+        .unwrap();
     assert_eq!(0x202, machine.cpu.pc);
 
     machine.cpu.pc = 0x200;
     machine.cpu.v[0x1] = 0x11;
     machine.cpu.v[0x2] = 0x11;
-    machine.execute(cpu::Operation::SkipNeqReg(0x1, 0x2)).unwrap();
+    machine
+        .execute(cpu::Operation::SkipNeqReg(0x1, 0x2))
+        .unwrap();
     assert_eq!(0x200, machine.cpu.pc);
 
     // LoadImm
@@ -237,7 +261,9 @@ fn chip8_cpu_operations() {
 
     // RandModImm
     machine.cpu.v[0x1] = 0x1F;
-    machine.execute(cpu::Operation::RandModImm(0x1, 0x2)).unwrap();
+    machine
+        .execute(cpu::Operation::RandModImm(0x1, 0x2))
+        .unwrap();
     assert!(machine.cpu.v[0x1] < 2);
 }
 
@@ -257,7 +283,10 @@ fn chip8_memory_operations() {
     machine.cpu.i = 0x200;
     machine.cpu.v[0..5].clone_from_slice(&[0x1, 0x2, 0x3, 0x4, 0x5]);
     machine.execute(cpu::Operation::MemStoreRegs(0x5)).unwrap();
-    assert_eq!(&machine.memory.data[0x200..0x205], &[0x1, 0x2, 0x3, 0x4, 0x5]);
+    assert_eq!(
+        &machine.memory.data[0x200..0x205],
+        &[0x1, 0x2, 0x3, 0x4, 0x5]
+    );
 
     // MemLoadRegs
     machine.cpu.i = 0x200;
@@ -310,7 +339,8 @@ fn chip8_video_operations() {
     machine.execute(cpu::Operation::Draw(0x0, 0xA, 2)).unwrap();
     assert_eq!(0x00, machine.cpu.v[0xF]);
     assert_eq!(
-        &machine.display.data[machine.display.height() - 1][machine.display.width() - 2..machine.display.width()],
+        &machine.display.data[machine.display.height() - 1]
+            [machine.display.width() - 2..machine.display.width()],
         &[1, 1]
     );
     assert_eq!(
@@ -322,10 +352,7 @@ fn chip8_video_operations() {
         &machine.display.data[0][machine.display.width() - 2..machine.display.width()],
         &[0, 0]
     );
-    assert_eq!(
-        &machine.display.data[0][0..6],
-        &[0, 1, 1, 1, 1, 1]
-    );
+    assert_eq!(&machine.display.data[0][0..6], &[0, 1, 1, 1, 1, 1]);
 }
 
 #[test]
