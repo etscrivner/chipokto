@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "chipokto",        
+    "okto",
+    "oktodis"
+]

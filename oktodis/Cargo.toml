@@ -1,0 +1,8 @@
+[package]
+name = "oktodis"
+version = "0.1.0"
+authors = ["Eric Scrivner <escrivner@coinbase.com>"]
+
+[dependencies]
+clap = "=2.31.2"
+okto = { path = "../okto" }
