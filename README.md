@@ -4,6 +4,12 @@ chipokto is a [Chip8](http://devernay.free.fr/hacks/chip8/C8TECH10.HTM#00Cn) and
 
 ## Development
 
+The emulator is divided into the following subsystems:
+
+* **okto/** - Library defining the Chip8 and SuperChip8 emulator.
+* **oktodis/** - Disassembler using the _okto_ library.
+* **chipokto/** - Graphical emulator application using the _okto_ library.
+
 To build all of the packages simply run the following in the root directory:
 
 ```shell
