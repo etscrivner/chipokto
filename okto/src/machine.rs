@@ -44,6 +44,25 @@ where
         }
     }
 
+    /// Attempt to read the next instruction from memory and execute it.
+    pub fn step(&mut self) -> OktoResult<&mut Self> {
+        let result = self.memory.read_instruction(self.cpu.pc);
+
+        if result.is_none() {
+            return Err(OktoError::new(OktoErrorKind::InvalidOpcode));
+        }
+
+        let operation = cpu::Operation::from_instruction(&result.unwrap());
+
+        if operation.is_none() {
+            return Err(OktoError::new(OktoErrorKind::InvalidOpcode));
+        }
+
+        // Move the program counter to the next instruction.
+        self.cpu.pc += cpu::INSTRUCTION_BYTES;
+        self.execute(operation.unwrap())
+    }
+
     /// Executes a single operation on the machine and return the resulting
     /// updated machine or an error if the operation failed.
     ///
@@ -88,7 +107,9 @@ where
             }
             cpu::Operation::Sys(addr) => self.cpu.pc = addr,
             cpu::Operation::Jump(addr) => self.cpu.pc = addr,
-            cpu::Operation::JumpAddrPlusV0(addr) => self.cpu.pc = addr + (self.cpu.v[0] as u16),
+            cpu::Operation::JumpAddrPlusV0(addr) => {
+                self.cpu.pc = addr.wrapping_add(self.cpu.v[0] as u16)
+            }
             cpu::Operation::Call(addr) => {
                 let pc = self.cpu.pc;
                 if let Err(error) = self.cpu.push_stack(pc) {
@@ -144,7 +165,7 @@ where
                 self.sound.timer = self.cpu.v[vx as usize];
             }
             cpu::Operation::AddImm(vx, imm) => {
-                self.cpu.v[vx as usize] += imm;
+                self.cpu.v[vx as usize] = self.cpu.v[vx as usize].wrapping_add(imm);
             }
             cpu::Operation::AddReg(vx, vy) => {
                 let (result, overflowed) =
@@ -156,7 +177,9 @@ where
                 self.cpu.v[vx as usize] = result;
             }
             cpu::Operation::AddAddrReg(vx) => {
-                self.cpu.i += self.cpu.v[vx as usize] as cpu::Address;
+                self.cpu.i = self.cpu
+                    .i
+                    .wrapping_add(self.cpu.v[vx as usize] as cpu::Address);
             }
             cpu::Operation::Sub(vx, vy) => {
                 let (result, overflowed) =
@@ -183,12 +206,12 @@ where
             }
             cpu::Operation::Shr(vx) => {
                 let flag_value = self.cpu.v[vx as usize] & 0x1;
-                self.cpu.set_flag_reg(flag_value);
+                self.cpu.set_flag_reg(flag_value & 1);
                 self.cpu.v[vx as usize] >>= 1;
             }
             cpu::Operation::Shl(vx) => {
                 let flag_value = (self.cpu.v[vx as usize] & 0x80) >> 7;
-                self.cpu.set_flag_reg(flag_value);
+                self.cpu.set_flag_reg(flag_value & 1);
                 self.cpu.v[vx as usize] <<= 1;
             }
             cpu::Operation::RandModImm(vx, imm) => {
@@ -200,9 +223,8 @@ where
                 let pixels_erased = self.display.draw(
                     self.cpu.v[vx as usize] as usize,
                     self.cpu.v[vy as usize] as usize,
-                    size_bytes as usize,
                     sprite_data,
-                );
+                )?;
 
                 self.cpu
                     .set_flag_reg(if pixels_erased { 0x01 } else { 0x00 });
@@ -248,25 +270,4 @@ where
 
         Ok(self)
     }
-}
-
-#[test]
-fn machine_execution() {
-    let mut machine = Machine::new(Box::new(keyboard::nop_wait_key_callback));
-    assert_eq!(0, machine.cpu.v[3]);
-    machine.execute(cpu::Operation::LoadImm(3, 0x25)).unwrap();
-    assert_eq!(0x25, machine.cpu.v[3]);
-
-    // Call and return
-    machine.execute(cpu::Operation::Call(0x234)).unwrap();
-    machine.execute(cpu::Operation::Ret).unwrap();
-
-    // BCD encoding
-    machine.execute(cpu::Operation::LoadImm(0, 234)).unwrap();
-    machine.execute(cpu::Operation::LoadAddr(0x200)).unwrap();
-    machine.execute(cpu::Operation::MemStoreBcd(0)).unwrap();
-
-    assert_eq!(0x02, machine.memory.data[0x200]);
-    assert_eq!(0x03, machine.memory.data[0x201]);
-    assert_eq!(0x04, machine.memory.data[0x202]);
 }

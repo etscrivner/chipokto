@@ -1,4 +1,5 @@
 //! Types, traits, and data structures for video display.
+use super::{OktoError, OktoErrorKind, OktoResult};
 
 /// Maximum height of the display
 pub const DISPLAY_HEIGHT: usize = 64;
@@ -43,7 +44,11 @@ impl Display {
     /// assert_eq!(0x00, display.data[10][20]);
     /// ```
     pub fn clear(&mut self) {
-        self.data = [[0; DISPLAY_HEIGHT]; DISPLAY_WIDTH];
+        for row in 0..self.height() {
+            for column in 0..self.width() {
+                self.data[row][column] = 0;
+            }
+        }
     }
 
     /// Returns the current effective height of the display give its mode.
@@ -99,22 +104,24 @@ impl Display {
     /// # extern crate okto;
     /// # use okto::display;
     /// # let mut display = display::Display::new();
-    /// let pixels_erased = display.draw(0, 0, 2, &[0xFF, 0x1F]);
+    /// let pixels_erased = display.draw(0, 0, &[0xFF, 0x1F]).unwrap();
     /// assert!(!pixels_erased);
     /// assert_eq!(&display.data[0][0..8], &[1, 1, 1, 1, 1, 1, 1, 1]);
     /// assert_eq!(&display.data[1][0..8], &[0, 0, 0, 1, 1, 1, 1, 1]);
     /// ```
-    pub fn draw(&mut self, x: usize, y: usize, size_bytes: usize, sprite_data: &[u8]) -> bool {
-        assert!(sprite_data.len() == size_bytes);
-        assert!(size_bytes <= MAX_SPRITE_BYTES);
+    pub fn draw(&mut self, x: usize, y: usize, sprite_data: &[u8]) -> OktoResult<bool> {
+        if sprite_data.len() > MAX_SPRITE_BYTES {
+            return Err(OktoError::new(OktoErrorKind::InvalidSprite));
+        }
 
         let mut pixels_erased = false;
 
-        for row in 0..size_bytes {
+        for row in 0..sprite_data.len() {
+            let ycoord = (y + row) % self.height();
+
             for column in 0..PIXELS_PER_BYTE {
                 let desired_bit = PIXELS_PER_BYTE - column - 1;
                 let pixel_data = (sprite_data[row] >> desired_bit) & 1;
-                let ycoord = (y + row) % self.height();
                 let xcoord = (x + column) % self.width();
 
                 // If we will end up erasing a set pixel, set the flag register.
@@ -126,6 +133,6 @@ impl Display {
             }
         }
 
-        pixels_erased
+        Ok(pixels_erased)
     }
 }

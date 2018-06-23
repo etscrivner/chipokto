@@ -4,5 +4,6 @@ version = "0.1.0"
 authors = ["Eric Scrivner <eric.t.scrivner@gmail.com>"]
 
 [dependencies]
-sdl2 = "0.31.0"
+clap = "=2.31.2"
+sdl2 = { version = "0.31.0", features = ['gfx'] }
 okto = { path = "../okto" }

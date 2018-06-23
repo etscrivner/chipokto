@@ -11,6 +11,9 @@ pub mod timer;
 
 use std::error::Error;
 use std::fmt;
+use std::fs::File;
+use std::io;
+use std::io::Read;
 
 /// Generic result type for emulator errors
 pub type OktoResult<T> = std::result::Result<T, OktoError>;
@@ -37,6 +40,8 @@ pub enum OktoErrorKind {
     InvalidDigitSprite,
     /// Invalid opcode given to the interpreter
     InvalidOpcode,
+    /// Sprite with too many bytes during drawing
+    InvalidSprite,
     /// Unknown error along with an error message
     Unknown(String),
 }
@@ -59,6 +64,7 @@ impl Error for OktoError {
             OktoErrorKind::RomTooLarge => "ROM too large",
             OktoErrorKind::AddressOutOfRange => "Address out of range",
             OktoErrorKind::InvalidDigitSprite => "Invalid digit sprite",
+            OktoErrorKind::InvalidSprite => "Invalid sprite",
             OktoErrorKind::InvalidOpcode => "Invalid opcode",
             OktoErrorKind::Unknown(_) => "Unknown",
         }
@@ -70,4 +76,14 @@ impl fmt::Display for OktoError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Error('{:?}')", self.description())
     }
+}
+
+/// Read a rom file into a vector of bytes.
+pub fn read_rom_file(rom_path: &str) -> io::Result<Vec<u8>> {
+    let mut file = File::open(rom_path)?;
+    let mut buffer: Vec<u8> = Vec::new();
+
+    file.read_to_end(&mut buffer)?;
+
+    Ok(buffer)
 }

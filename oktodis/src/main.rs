@@ -1,25 +1,12 @@
 extern crate clap;
 extern crate okto;
 
-use std::fs::File;
-use std::io;
-use std::io::prelude::*;
-
 use clap::{App, Arg};
 
 use okto::cpu;
 use okto::memory;
+use okto::read_rom_file;
 use okto::OktoResult;
-
-/// Read a rom file into a vector of bytes.
-fn read_rom_file(rom_path: &str) -> io::Result<Vec<u8>> {
-    let mut file = File::open(rom_path)?;
-    let mut buffer: Vec<u8> = Vec::new();
-
-    file.read_to_end(&mut buffer)?;
-
-    Ok(buffer)
-}
 
 /// Display the disassembly of the given ROM file. An offset can be provided so
 /// that, for example, a ROM with an initial data section can be correctly

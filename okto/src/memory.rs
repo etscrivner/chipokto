@@ -217,6 +217,9 @@ impl Memory {
     /// let result = memory.read_bytes(0x200, 3);
     /// assert!(result.is_ok());
     /// assert_eq!(result.unwrap(), &[0x1F, 0x3F, 0xF3]);
+    /// let result = memory.read_bytes(0x200, 1);
+    /// assert!(result.is_ok());
+    /// assert_eq!(result.unwrap(), &[0x1F]);
     /// ```
     pub fn read_bytes(&self, address: Address, size_bytes: usize) -> OktoResult<&[u8]> {
         let start = address as usize;
