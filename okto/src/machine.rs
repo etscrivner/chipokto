@@ -59,7 +59,7 @@ where
         }
 
         // Move the program counter to the next instruction.
-        self.cpu.pc += cpu::INSTRUCTION_BYTES;
+        self.cpu.skip_next_instr();
         self.execute(operation.unwrap())
     }
 
@@ -108,7 +108,7 @@ where
             cpu::Operation::Sys(addr) => self.cpu.pc = addr,
             cpu::Operation::Jump(addr) => self.cpu.pc = addr,
             cpu::Operation::JumpAddrPlusV0(addr) => {
-                self.cpu.pc = addr.wrapping_add(self.cpu.v[0] as u16)
+                self.cpu.pc = (addr + (self.cpu.v[0] as u16)) % 0x1000;
             }
             cpu::Operation::Call(addr) => {
                 let pc = self.cpu.pc;
@@ -182,18 +182,18 @@ where
                     .wrapping_add(self.cpu.v[vx as usize] as cpu::Address);
             }
             cpu::Operation::Sub(vx, vy) => {
-                let (result, overflowed) =
-                    self.cpu.v[vx as usize].overflowing_sub(self.cpu.v[vy as usize]);
+                let vx_val = self.cpu.v[vx as usize];
+                let vy_val = self.cpu.v[vy as usize];
 
-                self.cpu.set_flag_reg(if overflowed { 0x01 } else { 0x00 });
-                self.cpu.v[vx as usize] = result;
+                self.cpu.v[vx as usize] = vx_val.wrapping_sub(vy_val);
+                self.cpu.set_flag_reg(if vx_val > vy_val { 0x01 } else { 0x00 });
             }
             cpu::Operation::SubNeg(vx, vy) => {
-                let (result, overflowed) =
-                    self.cpu.v[vy as usize].overflowing_sub(self.cpu.v[vx as usize]);
+                let vy_val = self.cpu.v[vy as usize];
+                let vx_val = self.cpu.v[vx as usize];
 
-                self.cpu.set_flag_reg(if overflowed { 0x01 } else { 0x00 });
-                self.cpu.v[vy as usize] = result;
+                self.cpu.v[vx as usize] = vy_val.wrapping_sub(vx_val);
+                self.cpu.set_flag_reg(if vy_val > vx_val { 0x01 } else { 0x00 });
             }
             cpu::Operation::Or(vx, vy) => {
                 self.cpu.v[vx as usize] |= self.cpu.v[vy as usize];

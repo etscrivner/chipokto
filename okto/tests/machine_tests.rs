@@ -198,24 +198,28 @@ fn chip8_cpu_operations() {
     machine.cpu.v[0x2] = 3;
     machine.execute(cpu::Operation::Sub(0x1, 0x2)).unwrap();
     assert_eq!(2, machine.cpu.v[0x1]);
+    assert_eq!(1, machine.cpu.v[0xF]);
 
     // Sub - Underflow
     machine.cpu.v[0x1] = 3;
     machine.cpu.v[0x2] = 5;
     machine.execute(cpu::Operation::Sub(0x1, 0x2)).unwrap();
     assert_eq!(0xFE, machine.cpu.v[0x1]);
+    assert_eq!(0, machine.cpu.v[0xF]);
 
     // SubNeg
     machine.cpu.v[0x1] = 3;
     machine.cpu.v[0x2] = 5;
     machine.execute(cpu::Operation::SubNeg(0x1, 0x2)).unwrap();
-    assert_eq!(2, machine.cpu.v[0x2]);
+    assert_eq!(2, machine.cpu.v[0x1]);
+    assert_eq!(1, machine.cpu.v[0xF]);
 
-    // Sub - Underflow
+    // SubNeg - Underflow
     machine.cpu.v[0x1] = 5;
     machine.cpu.v[0x2] = 3;
     machine.execute(cpu::Operation::SubNeg(0x1, 0x2)).unwrap();
-    assert_eq!(0xFE, machine.cpu.v[0x2]);
+    assert_eq!(0xFE, machine.cpu.v[0x1]);
+    assert_eq!(0, machine.cpu.v[0xF]);
 
     // Or
     machine.cpu.v[0x1] = 0x1F;

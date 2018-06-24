@@ -1,6 +1,8 @@
 extern crate clap;
 extern crate okto;
 
+use std::io;
+
 use clap::{App, Arg};
 
 use okto::cpu;
