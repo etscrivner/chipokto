@@ -162,7 +162,8 @@ where
                 self.delay_timer.value = self.cpu.v[vx as usize];
             }
             cpu::Operation::LoadSoundReg(vx) => {
-                self.sound.timer = self.cpu.v[vx as usize];
+                let mut timer = self.sound.timer.write().unwrap();
+                *timer = self.cpu.v[vx as usize];
             }
             cpu::Operation::AddImm(vx, imm) => {
                 self.cpu.v[vx as usize] = self.cpu.v[vx as usize].wrapping_add(imm);
@@ -186,14 +187,16 @@ where
                 let vy_val = self.cpu.v[vy as usize];
 
                 self.cpu.v[vx as usize] = vx_val.wrapping_sub(vy_val);
-                self.cpu.set_flag_reg(if vx_val > vy_val { 0x01 } else { 0x00 });
+                self.cpu
+                    .set_flag_reg(if vx_val > vy_val { 0x01 } else { 0x00 });
             }
             cpu::Operation::SubNeg(vx, vy) => {
                 let vy_val = self.cpu.v[vy as usize];
                 let vx_val = self.cpu.v[vx as usize];
 
                 self.cpu.v[vx as usize] = vy_val.wrapping_sub(vx_val);
-                self.cpu.set_flag_reg(if vy_val > vx_val { 0x01 } else { 0x00 });
+                self.cpu
+                    .set_flag_reg(if vy_val > vx_val { 0x01 } else { 0x00 });
             }
             cpu::Operation::Or(vx, vy) => {
                 self.cpu.v[vx as usize] |= self.cpu.v[vy as usize];

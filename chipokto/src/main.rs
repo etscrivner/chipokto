@@ -2,14 +2,17 @@ extern crate clap;
 extern crate okto;
 extern crate sdl2;
 
+use std::collections::HashMap;
 use std::io;
+use std::sync::{Arc, RwLock};
 
 use clap::{App, Arg};
 
 use okto::keyboard::WaitKeyResult;
 use okto::machine::Machine;
-use okto::timer::CountdownTimer;
+use okto::timer::{CountdownTimer, Timer};
 
+use sdl2::audio::{AudioCallback, AudioSpecDesired};
 use sdl2::event::Event;
 use sdl2::gfx::primitives::DrawRenderer;
 use sdl2::keyboard::Keycode;
@@ -32,11 +35,33 @@ const FOREGROUND_COLOR: Color = Color {
     a: 255,
 };
 
-// TODO:
-// - [X] Countdown timers
-// - [X] Sound timers
-// - [ ] Display updating
-// - [ ] Sound
+struct SoundWave {
+    phase_inc: f32,
+    phase: f32,
+    volume: f32,
+    sound_timer: Arc<RwLock<Timer>>,
+}
+
+impl AudioCallback for SoundWave {
+    type Channel = f32;
+
+    /// Generate a square audio wave whenever the sound timer is non-zero.
+    fn callback(&mut self, out: &mut [f32]) {
+        for x in out.iter_mut() {
+            let timer = self.sound_timer.read().unwrap();
+            if *timer > 0 {
+                *x = if self.phase <= 0.5 {
+                    self.volume
+                } else {
+                    -self.volume
+                };
+                self.phase = (self.phase + self.phase_inc) % 1.0;
+            } else {
+                *x = 0.0;
+            }
+        }
+    }
+}
 
 struct EmulatorApp<F>
 where
@@ -55,6 +80,10 @@ where
             machine: Machine::new(Box::new(wait_key_callback)),
             delta_last_tick_milliseconds: 0,
         }
+    }
+
+    fn step(&mut self) {
+        self.machine.step().unwrap();
     }
 
     fn draw(&mut self, canvas: &mut sdl2::render::Canvas<sdl2::video::Window>) {
@@ -99,9 +128,36 @@ where
             self.delta_last_tick_milliseconds = 0;
         }
     }
+
+    fn key_pressed(&mut self, key: u8) {
+        self.machine.keyboard.keys[key as usize] = okto::keyboard::KeyState::Pressed;
+    }
+
+    fn key_released(&mut self, key: u8) {
+        self.machine.keyboard.keys[key as usize] = okto::keyboard::KeyState::Released;
+    }
 }
 
 fn main() -> io::Result<()> {
+    // Build key map
+    let mut keymap: HashMap<sdl2::keyboard::Keycode, u8> = HashMap::new();
+    keymap.insert(sdl2::keyboard::Keycode::Num1, 0x01);
+    keymap.insert(sdl2::keyboard::Keycode::Num2, 0x02);
+    keymap.insert(sdl2::keyboard::Keycode::Num3, 0x03);
+    keymap.insert(sdl2::keyboard::Keycode::Num4, 0x0C);
+    keymap.insert(sdl2::keyboard::Keycode::Q, 0x04);
+    keymap.insert(sdl2::keyboard::Keycode::W, 0x05);
+    keymap.insert(sdl2::keyboard::Keycode::E, 0x06);
+    keymap.insert(sdl2::keyboard::Keycode::R, 0x0D);
+    keymap.insert(sdl2::keyboard::Keycode::A, 0x07);
+    keymap.insert(sdl2::keyboard::Keycode::S, 0x08);
+    keymap.insert(sdl2::keyboard::Keycode::D, 0x09);
+    keymap.insert(sdl2::keyboard::Keycode::F, 0x0E);
+    keymap.insert(sdl2::keyboard::Keycode::Z, 0x0A);
+    keymap.insert(sdl2::keyboard::Keycode::X, 0x00);
+    keymap.insert(sdl2::keyboard::Keycode::C, 0x0B);
+    keymap.insert(sdl2::keyboard::Keycode::V, 0x0F);
+
     // Parse required command-line arguments
     let matches = App::new("chipokto")
         .version("1.0")
@@ -133,7 +189,13 @@ fn main() -> io::Result<()> {
         loop {
             for event in sdl_context.event_pump().unwrap().poll_iter() {
                 match event {
-                    Event::KeyDown { .. } => {
+                    Event::KeyDown {
+                        keycode: Some(keycode),
+                        ..
+                    } => {
+                        if keymap.contains_key(&keycode) {
+                            return Ok(keymap[&keycode]);
+                        }
                         return Ok(0x00);
                     }
                     _ => {}
@@ -151,6 +213,26 @@ fn main() -> io::Result<()> {
 
     let mut last_update_time = sdl_context.timer().unwrap().ticks();
 
+    // Audio system
+    let audio_subsystem = sdl_context.audio().unwrap();
+
+    let desired_spec = AudioSpecDesired {
+        freq: Some(44100),
+        channels: Some(1),
+        samples: None,
+    };
+
+    let device = audio_subsystem
+        .open_playback(None, &desired_spec, |spec| SoundWave {
+            phase_inc: 440.0 / spec.freq as f32,
+            phase: 0.0,
+            volume: 0.25,
+            sound_timer: emulator_app.machine.sound.timer.clone(),
+        })
+        .unwrap();
+
+    device.resume();
+
     // Main loop
     'running: loop {
         for event in sdl_context.event_pump().unwrap().poll_iter() {
@@ -160,13 +242,27 @@ fn main() -> io::Result<()> {
                     keycode: Some(Keycode::Escape),
                     ..
                 } => break 'running,
+                Event::KeyDown {
+                    keycode: Some(keycode),
+                    ..
+                } => {
+                    if keymap.contains_key(&keycode) {
+                        emulator_app.key_pressed(keymap[&keycode]);
+                    }
+                }
+                Event::KeyUp {
+                    keycode: Some(keycode),
+                    ..
+                } => {
+                    if keymap.contains_key(&keycode) {
+                        emulator_app.key_released(keymap[&keycode]);
+                    }
+                }
                 _ => {}
             }
         }
 
-        emulator_app.machine.step().unwrap();
-        // Process events
-        // emulator_app.process_events();
+        emulator_app.step();
 
         // Draw the contents of the framebuffer to the screen.
         emulator_app.draw(&mut canvas);

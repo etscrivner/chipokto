@@ -39,7 +39,7 @@ fn machine_initialization() {
     assert!(!machine.display.high_resolution);
 
     // Initial sound state
-    assert_eq!(machine.sound.timer, 0);
+    assert_eq!(*machine.sound.timer.read().unwrap(), 0);
 }
 
 #[test]
@@ -407,5 +407,5 @@ fn chip8_sound_operations() {
     // LoadSoundReg
     machine.cpu.v[0x2] = 0xAB;
     machine.execute(cpu::Operation::LoadSoundReg(0x2)).unwrap();
-    assert_eq!(0xAB, machine.sound.timer);
+    assert_eq!(0xAB, *machine.sound.timer.read().unwrap());
 }
