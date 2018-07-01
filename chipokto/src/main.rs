@@ -193,6 +193,7 @@ fn main() -> io::Result<()> {
     let window = video_subsystem
         .window("chipokto", 640, 320)
         .position_centered()
+        .resizable()
         .build()
         .unwrap();
     let mut canvas = window.into_canvas().build().unwrap();
