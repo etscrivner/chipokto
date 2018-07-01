@@ -30,11 +30,13 @@ const BACKGROUND_COLOR: Color = Color {
 /// Foreground color used for drawing the presence of a pixel.
 const FOREGROUND_COLOR: Color = Color {
     r: 255,
-    b: 255,
-    g: 255,
+    b: 192,
+    g: 180,
     a: 255,
 };
 
+/// Data structure that will help us in generating a square sound wave whenever
+/// the audio delay timer is non-zero.
 struct SoundWave {
     phase_inc: f32,
     phase: f32,
@@ -42,7 +44,9 @@ struct SoundWave {
     sound_timer: Arc<RwLock<Timer>>,
 }
 
+/// Implementation of SDL audio callback for our `SoundWave` type.
 impl AudioCallback for SoundWave {
+    /// Channel content type
     type Channel = f32;
 
     /// Generate a square audio wave whenever the sound timer is non-zero.
@@ -63,6 +67,7 @@ impl AudioCallback for SoundWave {
     }
 }
 
+/// Generalized data type store the emulator application itself.
 struct EmulatorApp<F>
 where
     F: FnMut() -> WaitKeyResult<u8>,
@@ -75,6 +80,7 @@ impl<F> EmulatorApp<F>
 where
     F: FnMut() -> WaitKeyResult<u8>,
 {
+    /// Default constructor.
     fn new(wait_key_callback: F) -> Self {
         Self {
             machine: Machine::new(Box::new(wait_key_callback)),
@@ -82,10 +88,12 @@ where
         }
     }
 
+    /// Execute the next instruction on the emulator.
     fn step(&mut self) {
         self.machine.step().unwrap();
     }
 
+    /// Draw the contents of the framebuffer to the given canvas.
     fn draw(&mut self, canvas: &mut sdl2::render::Canvas<sdl2::video::Window>) {
         canvas.set_draw_color(BACKGROUND_COLOR);
         canvas.clear();
@@ -100,6 +108,7 @@ where
             (window_width / display_width, window_height / display_height);
 
         // Draw an appropriately sized rectangle per pixel that is on in the frame buffer.
+        canvas.set_draw_color(FOREGROUND_COLOR);
         for height in 0..display_height {
             for width in 0..display_width {
                 if self.machine.display.data[height as usize][width as usize] == 1 {
@@ -119,6 +128,7 @@ where
         canvas.present();
     }
 
+    /// Update all time-dependent components of the machine.
     fn update(&mut self, delta_time_milliseconds: u32) {
         self.delta_last_tick_milliseconds += delta_time_milliseconds;
 
@@ -129,10 +139,12 @@ where
         }
     }
 
+    /// Update state to indiate that a key was pressed.
     fn key_pressed(&mut self, key: u8) {
         self.machine.keyboard.keys[key as usize] = okto::keyboard::KeyState::Pressed;
     }
 
+    /// Update state to indicate that a key was released.
     fn key_released(&mut self, key: u8) {
         self.machine.keyboard.keys[key as usize] = okto::keyboard::KeyState::Released;
     }
@@ -171,6 +183,7 @@ fn main() -> io::Result<()> {
         )
         .get_matches();
 
+    // Load ROM file
     let rom_path = matches.value_of("ROMFILE").unwrap();
     let rom_data = okto::read_rom_file(rom_path)?;
 
