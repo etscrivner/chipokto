@@ -22,6 +22,8 @@ pub const DEFAULT_PC_ADDRESS: Address = 0x200;
 pub const INSTRUCTION_BYTES: Address = 2;
 /// The index of the flag register (a.k.a. VF).
 pub const FLAG_REGISTER_INDEX: usize = 0xF;
+/// The number of HP48 registers
+pub const NUM_HP48_REGISTERS: usize = 8;
 
 /// Data structure encapsulating CPU state at a moment in time.
 pub struct Cpu {
@@ -35,6 +37,8 @@ pub struct Cpu {
     pub sp: Register,
     /// The 16 item stack
     pub stack: [Address; MAX_NUM_STACK_ITEMS],
+    /// The 8 HP48 flag registers
+    pub hp48: [Register; NUM_HP48_REGISTERS],
 }
 
 impl Cpu {
@@ -56,6 +60,7 @@ impl Cpu {
             pc: DEFAULT_PC_ADDRESS,
             sp: 0,
             stack: [0; MAX_NUM_STACK_ITEMS],
+            hp48: [0; NUM_HP48_REGISTERS],
         }
     }
 
@@ -297,6 +302,7 @@ pub enum Operation {
     MemLoadRegs(Register),
 
     // SuperChip8 Opcodes
+    Scd(Nibble),
     Scr,
     Scl,
     Exit,
@@ -343,7 +349,10 @@ impl Operation {
                 0x00FD => Some(Operation::Exit),
                 0x00FE => Some(Operation::Low),
                 0x00FF => Some(Operation::High),
-                _ => Some(Operation::Sys(instruction.addr())),
+                _ => match instruction & 0x00F0 {
+                    0x00C0 => Some(Operation::Scd(instruction.nib())),
+                    _ => Some(Operation::Sys(instruction.addr())),
+                },
             },
             0x1000 => Some(Operation::Jump(instruction.addr())),
             0x2000 => Some(Operation::Call(instruction.addr())),

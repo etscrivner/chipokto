@@ -167,6 +167,7 @@ fn chip8_opcodes() {
 
 #[test]
 fn superchip8_opcodes() {
+    assert_eq!(Some(Operation::Scd(0x3)), Operation::from_instruction(&0x00C3));
     assert_eq!(Some(Operation::Scr), Operation::from_instruction(&0x00FB));
     assert_eq!(Some(Operation::Scl), Operation::from_instruction(&0x00FC));
     assert_eq!(Some(Operation::Exit), Operation::from_instruction(&0x00FD));

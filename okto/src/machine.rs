@@ -26,6 +26,8 @@ where
     pub memory: memory::Memory,
     /// Sound card, which is really a glorified timer
     pub sound: sound::Sound,
+    /// Indicates whether or not the machine is still on
+    pub machine_on: bool,
 }
 
 impl<F> Machine<F>
@@ -41,11 +43,16 @@ where
             keyboard: keyboard::Keyboard::new(wait_key_callback),
             memory: memory::Memory::new(),
             sound: sound::Sound::new(),
+            machine_on: true,
         }
     }
 
     /// Attempt to read the next instruction from memory and execute it.
     pub fn step(&mut self) -> OktoResult<&mut Self> {
+        if !self.machine_on {
+            return Ok(self);
+        }
+
         let result = self.memory.read_instruction(self.cpu.pc);
 
         if result.is_none() {
@@ -221,16 +228,36 @@ where
                 self.cpu.v[vx as usize] = random::<u8>() % imm;
             }
             cpu::Operation::Draw(vx, vy, size_bytes) => {
-                let sprite_data = self.memory.read_bytes(self.cpu.i, size_bytes as usize)?;
+                if size_bytes == 0 {
+                    let sprite_data = self.memory.read_bytes(self.cpu.i, 32)?;
 
-                let pixels_erased = self.display.draw(
-                    self.cpu.v[vx as usize] as usize,
-                    self.cpu.v[vy as usize] as usize,
-                    sprite_data,
-                )?;
+                    let pixels_erased = self.display.draw_large(
+                        self.cpu.v[vx as usize] as usize,
+                        self.cpu.v[vy as usize] as usize,
+                        sprite_data,
+                    )?;
 
-                self.cpu
-                    .set_flag_reg(if pixels_erased { 0x01 } else { 0x00 });
+                    self.cpu
+                        .set_flag_reg(if pixels_erased { 0x01 } else { 0x00 });
+                } else {
+                    let mut num_bytes = size_bytes;
+                    if size_bytes == 0 {
+                        num_bytes = 16;
+                    }
+
+                    let sprite_data = self.memory.read_bytes(
+                        self.cpu.i, num_bytes as usize
+                    )?;
+
+                    let pixels_erased = self.display.draw(
+                        self.cpu.v[vx as usize] as usize,
+                        self.cpu.v[vy as usize] as usize,
+                        sprite_data,
+                    )?;
+
+                    self.cpu
+                        .set_flag_reg(if pixels_erased { 0x01 } else { 0x00 });
+                }
             }
             cpu::Operation::SkipKey(vx) => {
                 let index = self.cpu.v[vx as usize] as usize;
@@ -268,6 +295,44 @@ where
                         self.memory.data[(self.cpu.i + index as u16) as usize];
                 }
             }
+
+            // SuperChip8 operations
+            cpu::Operation::Scd(num_lines) => {
+                self.display.scroll_down(num_lines as usize);
+            },
+            cpu::Operation::Scr => {
+                self.display.scroll_right();
+            },
+            cpu::Operation::Scl => {
+                self.display.scroll_left();
+            },
+            cpu::Operation::Exit => {
+                self.machine_on = false;
+            },
+            cpu::Operation::High => {
+                self.display.high_resolution = true;
+            },
+            cpu::Operation::Low => {
+                self.display.high_resolution = false;
+            },
+            cpu::Operation::RplStoreRegs(vx) => {
+                if vx > 8 {
+                    return Err(OktoError::new(OktoErrorKind::RegisterOutOfRange(vx)));
+                }
+
+                for index in 0..vx {
+                    self.cpu.hp48[index as usize] = self.cpu.v[index as usize];
+                }
+            },
+            cpu::Operation::RplLoadRegs(vx) => {
+                if vx > 8 {
+                    return Err(OktoError::new(OktoErrorKind::RegisterOutOfRange(vx)));
+                }
+
+                for index in 0..vx {
+                    self.cpu.v[index as usize] = self.cpu.hp48[index as usize];
+                }
+            },
             _ => return Err(OktoError::new(OktoErrorKind::InvalidOpcode)),
         }
 

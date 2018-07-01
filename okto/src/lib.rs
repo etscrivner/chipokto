@@ -42,6 +42,8 @@ pub enum OktoErrorKind {
     InvalidOpcode,
     /// Sprite with too many bytes during drawing
     InvalidSprite,
+    /// Register out of range during HP48 load/store
+    RegisterOutOfRange(u8),
     /// Unknown error along with an error message
     Unknown(String),
 }
@@ -66,6 +68,7 @@ impl Error for OktoError {
             OktoErrorKind::InvalidDigitSprite => "Invalid digit sprite",
             OktoErrorKind::InvalidSprite => "Invalid sprite",
             OktoErrorKind::InvalidOpcode => "Invalid opcode",
+            OktoErrorKind::RegisterOutOfRange(_) => "Register out of range",
             OktoErrorKind::Unknown(_) => "Unknown",
         }
     }

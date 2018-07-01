@@ -13,7 +13,15 @@ pub const PIXELS_PER_BYTE: usize = 8;
 /// Display state data
 pub struct Display {
     /// Frame buffer for the video display
-    pub data: [[u8; DISPLAY_HEIGHT]; DISPLAY_WIDTH],
+    ///
+    /// ```
+    /// # extern crate okto;
+    /// # use okto::display;
+    /// # let display = display::Display::new();
+    /// assert_eq!(display::DISPLAY_HEIGHT, display.data.len());
+    /// assert_eq!(display::DISPLAY_WIDTH, display.data[0].len());
+    /// ```
+    pub data: [[u8; DISPLAY_WIDTH]; DISPLAY_HEIGHT],
     /// Indicates whether or not the display is in high resolution mode
     pub high_resolution: bool,
 }
@@ -25,7 +33,7 @@ impl Display {
     /// zero values.
     pub fn new() -> Self {
         Self {
-            data: [[0; DISPLAY_HEIGHT]; DISPLAY_WIDTH],
+            data: [[0; DISPLAY_WIDTH]; DISPLAY_HEIGHT],
             high_resolution: false,
         }
     }
@@ -134,5 +142,79 @@ impl Display {
         }
 
         Ok(pixels_erased)
+    }
+
+    pub fn draw_large(&mut self, x: usize, y: usize, sprite_data: &[u8]) -> OktoResult<bool> {
+        if sprite_data.len() != 32 {
+            return Err(OktoError::new(OktoErrorKind::AddressOutOfRange));
+        }
+
+        let mut pixels_erased = false;
+
+        for yoffset in 0..16 {
+            for xoffset in 0..2 {
+                pixels_erased |= self.draw(
+                    x + (xoffset * 8),
+                    y + yoffset,
+                    &[sprite_data[(yoffset * 2) + xoffset]]
+                )?;
+            }
+        }
+
+        Ok(pixels_erased)
+    }
+
+    /// Shift the contents of the frame-buffer down the given number of lines.
+    /// Previous lines are filled with zeros after scrolling.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # extern crate okto;
+    /// # use okto::display;
+    /// # let mut display = display::Display::new();
+    /// display.draw(0, 0, &[0xFF, 0x1F]).unwrap();
+    /// assert_eq!(&display.data[0][0..8], &[1, 1, 1, 1, 1, 1, 1, 1]);
+    /// assert_eq!(&display.data[1][0..8], &[0, 0, 0, 1, 1, 1, 1, 1]);
+    /// display.scroll_down(2);
+    /// assert_eq!(&display.data[2][0..8], &[1, 1, 1, 1, 1, 1, 1, 1]);
+    /// assert_eq!(&display.data[3][0..8], &[0, 0, 0, 1, 1, 1, 1, 1]);
+    /// ```
+    pub fn scroll_down(&mut self, num_lines: usize) {
+        let mut new_buffer = [[0; DISPLAY_WIDTH]; DISPLAY_HEIGHT];
+
+        for height in num_lines..self.data.len() {
+            for width in 0..self.data[height].len() {
+                new_buffer[height][width] = self.data[(height - num_lines)][width];
+            }
+        }
+
+        self.data = new_buffer;
+    }
+
+    /// Scroll the contents of the frame buffer 4 pixels to the left.
+    pub fn scroll_left(&mut self) {
+        let mut new_buffer = [[0; DISPLAY_WIDTH]; DISPLAY_HEIGHT];
+
+        for height in 0..DISPLAY_HEIGHT {
+            for width in 0..(DISPLAY_WIDTH - 4) {
+                new_buffer[height][width] = self.data[height][width + 4];
+            }
+        }
+
+        self.data = new_buffer;
+    }
+
+    /// Scroll the contents of the frame buffer 4 pixels to the right.
+    pub fn scroll_right(&mut self) {
+        let mut new_buffer = [[0; DISPLAY_WIDTH]; DISPLAY_HEIGHT];
+
+        for height in 0..DISPLAY_HEIGHT {
+            for width in 4..DISPLAY_WIDTH {
+                new_buffer[height][width] = self.data[height][width - 4];
+            }
+        }
+
+        self.data = new_buffer;
     }
 }
