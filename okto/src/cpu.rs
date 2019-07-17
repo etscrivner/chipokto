@@ -24,6 +24,8 @@ pub const INSTRUCTION_BYTES: Address = 2;
 pub const FLAG_REGISTER_INDEX: usize = 0xF;
 /// The number of HP48 registers
 pub const NUM_HP48_REGISTERS: usize = 8;
+/// Number of times the CPU should process an instruction per second
+pub const CPU_TICK_HZ: u32 = 500;
 
 /// Data structure encapsulating CPU state at a moment in time.
 pub struct Cpu {

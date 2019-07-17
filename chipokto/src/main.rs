@@ -20,6 +20,8 @@ use sdl2::pixels::Color;
 
 /// Number of milliseconds per Chip8 timer tick ~(1000 * 1 / 60).
 const MILLISECONDS_PER_TICK: u32 = 17;
+/// Number of milliseconds per Chip8 CPU instruction ~(1000 * 1/500).
+const MILLISECONDS_PER_INSTRUCTION: u32 = 2;
 /// Background color used for drawing the absence of a pixel.
 const BACKGROUND_COLOR: Color = Color {
     r: 0,
@@ -73,6 +75,7 @@ where
     F: FnMut() -> WaitKeyResult<u8>,
 {
     machine: Machine<F>,
+    delta_last_inst_milliseconds: u32,
     delta_last_tick_milliseconds: u32,
 }
 
@@ -84,13 +87,18 @@ where
     fn new(wait_key_callback: F) -> Self {
         Self {
             machine: Machine::new(Box::new(wait_key_callback)),
+            delta_last_inst_milliseconds: 0,
             delta_last_tick_milliseconds: 0,
         }
     }
 
     /// Execute the next instruction on the emulator.
-    fn step(&mut self) {
-        self.machine.step().unwrap();
+    fn step(&mut self, delta_time_milliseconds: u32) {
+        self.delta_last_inst_milliseconds += delta_time_milliseconds;
+        if self.delta_last_inst_milliseconds >= MILLISECONDS_PER_INSTRUCTION {
+            self.machine.step().unwrap();
+            self.delta_last_inst_milliseconds = 0;
+        }
     }
 
     /// Draw the contents of the framebuffer to the given canvas.
@@ -225,7 +233,8 @@ fn main() -> io::Result<()> {
         .load(&rom_data, okto::cpu::DEFAULT_PC_ADDRESS, rom_data.len())
         .unwrap();
 
-    let mut last_update_time = sdl_context.timer().unwrap().ticks();
+    let mut timer = sdl_context.timer().unwrap();
+    let mut last_update_time = timer.ticks();
 
     // Audio system
     let audio_subsystem = sdl_context.audio().unwrap();
@@ -276,16 +285,15 @@ fn main() -> io::Result<()> {
             }
         }
 
-        emulator_app.step();
+        // Update machine subsystems that are time-dependent.
+        let current_time = timer.ticks();
+        let delta_time = current_time - last_update_time;
+        emulator_app.step(delta_time);
+        emulator_app.update(delta_time);
+        last_update_time = timer.ticks();
 
         // Draw the contents of the framebuffer to the screen.
         emulator_app.draw(&mut canvas);
-
-        // Update machine subsystems that are time-dependent.
-        let current_time = sdl_context.timer().unwrap().ticks();
-        let delta_time = current_time - last_update_time;
-        emulator_app.update(delta_time);
-        last_update_time = current_time;
     }
 
     Ok(())
