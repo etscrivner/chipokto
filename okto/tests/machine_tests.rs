@@ -266,9 +266,9 @@ fn chip8_cpu_operations() {
     // RandModImm
     machine.cpu.v[0x1] = 0x1F;
     machine
-        .execute(cpu::Operation::RandModImm(0x1, 0x2))
+        .execute(cpu::Operation::RandAndImm(0x1, 0x3))
         .unwrap();
-    assert!(machine.cpu.v[0x1] < 2);
+    assert!(machine.cpu.v[0x1] <= 3);
 }
 
 #[test]

@@ -294,7 +294,7 @@ pub enum Operation {
     Xor(Register, Register),
     Shr(Register),
     Shl(Register),
-    RandModImm(Register, Immediate),
+    RandAndImm(Register, Immediate),
     Draw(Register, Register, Nibble),
     SkipKey(Register),
     SkipNotKey(Register),
@@ -384,7 +384,7 @@ impl Operation {
             },
             0xA000 => Some(Operation::LoadAddr(instruction.addr())),
             0xB000 => Some(Operation::JumpAddrPlusV0(instruction.addr())),
-            0xC000 => Some(Operation::RandModImm(instruction.vx(), instruction.imm())),
+            0xC000 => Some(Operation::RandAndImm(instruction.vx(), instruction.imm())),
             0xD000 => Some(Operation::Draw(
                 instruction.vx(),
                 instruction.vy(),

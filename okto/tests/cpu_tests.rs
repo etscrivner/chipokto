@@ -102,7 +102,7 @@ fn chip8_opcodes() {
         Operation::from_instruction(&0xBBEF)
     );
     assert_eq!(
-        Some(Operation::RandModImm(0xB, 0x3A)),
+        Some(Operation::RandAndImm(0xB, 0x3A)),
         Operation::from_instruction(&0xCB3A)
     );
     assert_eq!(

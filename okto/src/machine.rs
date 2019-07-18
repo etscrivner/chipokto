@@ -224,8 +224,8 @@ where
                 self.cpu.set_flag_reg(flag_value & 1);
                 self.cpu.v[vx as usize] <<= 1;
             }
-            cpu::Operation::RandModImm(vx, imm) => {
-                self.cpu.v[vx as usize] = random::<u8>() % imm;
+            cpu::Operation::RandAndImm(vx, imm) => {
+                self.cpu.v[vx as usize] = random::<u8>() & imm;
             }
             cpu::Operation::Draw(vx, vy, size_bytes) => {
                 if size_bytes == 0 {
